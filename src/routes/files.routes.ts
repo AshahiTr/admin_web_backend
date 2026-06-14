@@ -473,7 +473,7 @@ router.delete(
       }
 
       // Check if file belongs to application
-      if (fileMetadata.metadata?.applicationId?.toString() !== applicationId) {
+      if (fileMetadata.uploadedFor?.id?.toString() !== applicationId && fileMetadata.uploadedFor?.type !== 'application') {
         return res.status(400).json({ error: 'File không thuộc hồ sơ này' });
       }
 

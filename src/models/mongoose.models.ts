@@ -1,4 +1,4 @@
-import mongoose, { Schema } from 'mongoose';
+import mongoose, { Schema, Document } from 'mongoose';
 
 // ============= Schools =============
 export interface ISchool extends Document {
@@ -30,7 +30,7 @@ const SchoolSchema = new Schema<ISchool>(
   { timestamps: true }
 );
 
-const School = mongoose.model<ISchool>('School', SchoolSchema);
+export const School = mongoose.model<ISchool>('School', SchoolSchema);
 
 // ============= Majors =============
 export interface IMajor extends Document {
@@ -60,11 +60,7 @@ const MajorSchema = new Schema<IMajor>(
   { timestamps: true }
 );
 
-MajorSchema.index({ schoolId: 1 });
-MajorSchema.index({ code: 1 });
-MajorSchema.index({ schoolId: 1, isActive: 1 });
-
-const Major = mongoose.model<IMajor>('Major', MajorSchema);
+export const Major = mongoose.model<IMajor>('Major', MajorSchema);
 
 // ============= AdmissionBlocks =============
 export interface IAdmissionBlock extends Document {
@@ -92,11 +88,7 @@ const AdmissionBlockSchema = new Schema<IAdmissionBlock>(
   { timestamps: true }
 );
 
-AdmissionBlockSchema.index({ majorId: 1 });
-AdmissionBlockSchema.index({ code: 1 });
-AdmissionBlockSchema.index({ year: 1, majorId: 1 });
-
-const AdmissionBlock = mongoose.model<IAdmissionBlock>('AdmissionBlock', AdmissionBlockSchema);
+export const AdmissionBlock = mongoose.model<IAdmissionBlock>('AdmissionBlock', AdmissionBlockSchema);
 
 // ============= Quotas =============
 export interface IQuota extends Document {
@@ -124,10 +116,7 @@ const QuotaSchema = new Schema<IQuota>(
   { timestamps: true }
 );
 
-QuotaSchema.index({ admissionBlockId: 1 });
-QuotaSchema.index({ year: 1, majorId: 1 });
-
-const Quota = mongoose.model<IQuota>('Quota', QuotaSchema);
+export const Quota = mongoose.model<IQuota>('Quota', QuotaSchema);
 
 // ============= Applications =============
 export interface IApplication extends Document {
@@ -137,13 +126,13 @@ export interface IApplication extends Document {
   schoolId: mongoose.Types.ObjectId;
   personalInfo: {
     fullName: string;
-    dateOfBirth: Date;
-    gender: 'M' | 'F';
-    nationalId: string;
-    phoneNumber: string;
-    email: string;
-    address: string;
-    hometown: string;
+    dateOfBirth?: Date;
+    gender?: string;
+    nationalId?: string;
+    phoneNumber?: string;
+    email?: string;
+    address?: string;
+    hometown?: string;
   };
   academicInfo: {
     highSchoolCode?: string;
@@ -164,16 +153,12 @@ export interface IApplication extends Document {
     totalScore?: number;
     priorityPoints?: number;
     finalScore?: number;
-    status: 'pending' | 'accepted' | 'rejected' | 'waitlisted';
+    status: string;
     resultDate?: Date;
     note?: string;
   };
-  processStatus: 'submitted' | 'verified' | 'scoring' | 'completed';
+  processStatus: string;
   completionPercentage: number;
-  alternateChoices?: Array<{
-    admissionBlockId: mongoose.Types.ObjectId;
-    priority: number;
-  }>;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -188,10 +173,10 @@ const ApplicationSchema = new Schema<IApplication>(
     personalInfo: {
       fullName: { type: String, required: true, trim: true },
       dateOfBirth: Date,
-      gender: { type: String, enum: ['M', 'F'] },
-      nationalId: { type: String, trim: true },
+      gender: String,
+      nationalId: String,
       phoneNumber: String,
-      email: { type: String, lowercase: true },
+      email: String,
       address: String,
       hometown: String
     },
@@ -214,41 +199,18 @@ const ApplicationSchema = new Schema<IApplication>(
       totalScore: Number,
       priorityPoints: { type: Number, default: 0 },
       finalScore: Number,
-      status: {
-        type: String,
-        enum: ['pending', 'accepted', 'rejected', 'waitlisted'],
-        default: 'pending'
-      },
+      status: { type: String, default: 'pending' },
       resultDate: Date,
       note: String
     },
-    processStatus: {
-      type: String,
-      enum: ['submitted', 'verified', 'scoring', 'completed'],
-      default: 'submitted'
-    },
-    completionPercentage: { type: Number, default: 0, min: 0, max: 100 },
-    alternateChoices: [
-      {
-        admissionBlockId: { type: Schema.Types.ObjectId, ref: 'AdmissionBlock' },
-        priority: Number
-      }
-    ],
+    processStatus: { type: String, default: 'submitted' },
+    completionPercentage: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true }
   },
   { timestamps: true }
 );
 
-ApplicationSchema.index({ applicationNumber: 1 }, { unique: true });
-ApplicationSchema.index({ admissionBlockId: 1 });
-ApplicationSchema.index({ majorId: 1 });
-ApplicationSchema.index({ schoolId: 1 });
-ApplicationSchema.index({ 'personalInfo.email': 1 });
-ApplicationSchema.index({ 'admissionResult.status': 1 });
-ApplicationSchema.index({ 'admissionResult.totalScore': -1 });
-ApplicationSchema.index({ createdAt: -1 });
-
-const Application = mongoose.model<IApplication>('Application', ApplicationSchema);
+export const Application = mongoose.model<IApplication>('Application', ApplicationSchema);
 
 // ============= Users =============
 export interface IUser extends Document {
@@ -256,7 +218,7 @@ export interface IUser extends Document {
   email: string;
   hashedPassword: string;
   fullName: string;
-  role: 'admin' | 'staff' | 'manager' | 'viewer';
+  role: string;
   schoolId: mongoose.Types.ObjectId[];
   permissions: {
     canCreateSchool: boolean;
@@ -269,8 +231,6 @@ export interface IUser extends Document {
   };
   isActive: boolean;
   lastLogin?: Date;
-  passwordResetCode?: string;
-  passwordResetExpiry?: Date;
   tokenVersion: number;
   createdAt: Date;
   updatedAt: Date;
@@ -282,11 +242,7 @@ const UserSchema = new Schema<IUser>(
     email: { type: String, required: true, unique: true, lowercase: true },
     hashedPassword: { type: String, required: true },
     fullName: { type: String, required: true, trim: true },
-    role: {
-      type: String,
-      enum: ['admin', 'staff', 'manager', 'viewer'],
-      default: 'viewer'
-    },
+    role: { type: String, default: 'viewer' },
     schoolId: [{ type: Schema.Types.ObjectId, ref: 'School' }],
     permissions: {
       canCreateSchool: { type: Boolean, default: false },
@@ -299,18 +255,35 @@ const UserSchema = new Schema<IUser>(
     },
     isActive: { type: Boolean, default: true },
     lastLogin: Date,
-    passwordResetCode: String,
-    passwordResetExpiry: Date,
     tokenVersion: { type: Number, default: 0 }
   },
   { timestamps: true }
 );
 
-UserSchema.index({ username: 1 }, { unique: true });
-UserSchema.index({ email: 1 }, { unique: true });
-UserSchema.index({ role: 1 });
+export const User = mongoose.model<IUser>('User', UserSchema);
 
-const User = mongoose.model<IUser>('User', UserSchema);
+// ============= Statistics =============
+export interface IStatistics extends Document {
+  type: string;
+  date: Date;
+  schoolId?: mongoose.Types.ObjectId;
+  metrics: any;
+  majorStats: any[];
+  createdAt: Date;
+}
+
+const StatisticsSchema = new Schema<IStatistics>(
+  {
+    type: { type: String, required: true },
+    date: { type: Date, required: true },
+    schoolId: { type: Schema.Types.ObjectId, ref: 'School' },
+    metrics: { type: Schema.Types.Mixed, default: {} },
+    majorStats: { type: Schema.Types.Mixed, default: [] }  // Sửa dòng này
+  },
+  { timestamps: { createdAt: true, updatedAt: false } }
+);
+
+export const Statistics = mongoose.model<IStatistics>('Statistics', StatisticsSchema);
 
 // ============= File Metadata =============
 export interface IFileMetadata extends Document {
@@ -319,20 +292,14 @@ export interface IFileMetadata extends Document {
   filename: string;
   mimeType: string;
   size: number;
-  category: 'avatar' | 'document' | 'logo' | 'data';
+  category: string;
   uploadedBy: mongoose.Types.ObjectId;
   uploadedFor: {
-    type: 'user' | 'application' | 'school';
+    type: string;
     id: mongoose.Types.ObjectId;
   };
   uploadDate: Date;
-  expiryDate?: Date;
   isPublic: boolean;
-  metadata?: {
-    applicationId?: mongoose.Types.ObjectId;
-    userId?: mongoose.Types.ObjectId;
-    schoolId?: mongoose.Types.ObjectId;
-  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -340,119 +307,20 @@ export interface IFileMetadata extends Document {
 const FileMetadataSchema = new Schema<IFileMetadata>(
   {
     gridFsId: { type: String, required: true },
-    originalName: { type: String, required: true, trim: true },
-    filename: { type: String, required: true, trim: true },
+    originalName: { type: String, required: true },
+    filename: { type: String, required: true },
     mimeType: { type: String, required: true },
     size: { type: Number, required: true },
-    category: {
-      type: String,
-      enum: ['avatar', 'document', 'logo', 'data'],
-      required: true
-    },
+    category: { type: String, required: true },
     uploadedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     uploadedFor: {
-      type: {
-        type: String,
-        enum: ['user', 'application', 'school'],
-        required: true
-      },
+      type: { type: String, required: true },
       id: { type: Schema.Types.ObjectId, required: true }
     },
     uploadDate: { type: Date, default: Date.now },
-    expiryDate: Date,
-    isPublic: { type: Boolean, default: false },
-    metadata: {
-      applicationId: { type: Schema.Types.ObjectId, ref: 'Application' },
-      userId: { type: Schema.Types.ObjectId, ref: 'User' },
-      schoolId: { type: Schema.Types.ObjectId, ref: 'School' }
-    }
+    isPublic: { type: Boolean, default: false }
   },
   { timestamps: true }
 );
 
-FileMetadataSchema.index({ uploadedBy: 1 });
-FileMetadataSchema.index({ 'uploadedFor.id': 1 });
-FileMetadataSchema.index({ category: 1 });
-FileMetadataSchema.index({ uploadDate: -1 });
-
-const FileMetadata = mongoose.model<IFileMetadata>('FileMetadata', FileMetadataSchema);
-
-// ============= Statistics =============
-export interface IStatistics extends Document {
-  type: 'daily' | 'monthly' | 'yearly';
-  date: Date;
-  schoolId?: mongoose.Types.ObjectId;
-  metrics: {
-    totalApplications: number;
-    acceptedApplications: number;
-    rejectedApplications: number;
-    waitlistedApplications: number;
-    pendingApplications: number;
-    averageScore: number;
-    scoreDistribution: {
-      '0-5': number;
-      '5-10': number;
-      '10-15': number;
-      '15-20': number;
-      '20-25': number;
-      '25+': number;
-    };
-  };
-  majorStats: Array<{
-    majorId: mongoose.Types.ObjectId;
-    applications: number;
-    accepted: number;
-    ratio: number;
-  }>;
-  createdAt: Date;
-}
-
-const StatisticsSchema = new Schema<IStatistics>(
-  {
-    type: { type: String, enum: ['daily', 'monthly', 'yearly'], required: true },
-    date: { type: Date, required: true },
-    schoolId: { type: Schema.Types.ObjectId, ref: 'School' },
-    metrics: {
-      totalApplications: { type: Number, default: 0 },
-      acceptedApplications: { type: Number, default: 0 },
-      rejectedApplications: { type: Number, default: 0 },
-      waitlistedApplications: { type: Number, default: 0 },
-      pendingApplications: { type: Number, default: 0 },
-      averageScore: { type: Number, default: 0 },
-      scoreDistribution: {
-        '0-5': { type: Number, default: 0 },
-        '5-10': { type: Number, default: 0 },
-        '10-15': { type: Number, default: 0 },
-        '15-20': { type: Number, default: 0 },
-        '20-25': { type: Number, default: 0 },
-        '25+': { type: Number, default: 0 }
-      }
-    },
-    majorStats: [
-      {
-        majorId: { type: Schema.Types.ObjectId, ref: 'Major' },
-        applications: Number,
-        accepted: Number,
-        ratio: Number
-      }
-    ]
-  },
-  { timestamps: { createdAt: true, updatedAt: false } }
-);
-
-StatisticsSchema.index({ type: 1, date: -1 });
-StatisticsSchema.index({ schoolId: 1, type: 1 });
-
-const Statistics = mongoose.model<IStatistics>('Statistics', StatisticsSchema);
-
-// ============= EXPORT ALL MODELS =============
-export {
-  School,
-  Major,
-  AdmissionBlock,
-  Quota,
-  Application,
-  User,
-  FileMetadata,
-  Statistics  // Thêm Statistics vào export
-};
+export const FileMetadata = mongoose.model<IFileMetadata>('FileMetadata', FileMetadataSchema);
