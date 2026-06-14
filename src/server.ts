@@ -2,11 +2,11 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
-import { connectDB } from './config/database.js';
-import { initializeGridFS } from './config/gridfs.js';
-import apiRoutes from './routes/api.routes.js';
-import fileRoutes from './routes/files.routes.js';
-import authRoutes from './routes/auth.routes.js';
+import { connectDB } from './config/database';
+import { initializeGridFS } from './config/gridfs';
+import apiRoutes from './routes/api.routes';
+import fileRoutes from './routes/files.routes';
+import authRoutes from './routes/auth.routes';
 
 dotenv.config();
 
@@ -44,10 +44,8 @@ app.use((req: express.Request, res: express.Response) => {
   res.status(404).json({ error: 'Không tìm thấy endpoint' });
 });
 
-// Start server
 const PORT = process.env.PORT || 5000;
 
-// Khởi động server sau khi kết nối database
 const startServer = async () => {
   try {
     await connectDB();
