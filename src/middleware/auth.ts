@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { isTokenBlacklisted } from '../utils/tokenBlacklist';
+import { isTokenBlacklisted } from '../utils/tokenBlacklist.js';
+import { User } from '../models/mongoose.models.js';
 
 export interface AuthRequest extends Request {
   userId?: string;
@@ -27,7 +28,6 @@ export const authenticateToken = (
       return res.status(401).json({ error: 'Token không được cung cấp' });
     }
 
-    // Check if token is blacklisted
     if (isTokenBlacklisted(token)) {
       return res.status(401).json({ error: 'Token đã bị vô hiệu hóa' });
     }
@@ -54,7 +54,6 @@ export const authorizeRole = (...roles: string[]) => {
         return res.status(401).json({ error: 'Không được xác thực' });
       }
 
-      const { User } = await import('../models/mongoose.models');
       const user = await User.findById(req.userId);
 
       if (!user) {
@@ -65,8 +64,8 @@ export const authorizeRole = (...roles: string[]) => {
         return res.status(403).json({ error: 'Tài khoản đã bị vô hiệu hóa' });
       }
 
-      if (user.tokenVersion !== undefined && (req as any).tokenVersion !== undefined) {
-        if (user.tokenVersion !== (req as any).tokenVersion) {
+      if (user.tokenVersion !== undefined && req.tokenVersion !== undefined) {
+        if (user.tokenVersion !== req.tokenVersion) {
           return res.status(401).json({ error: 'Token đã bị vô hiệu hóa' });
         }
       }

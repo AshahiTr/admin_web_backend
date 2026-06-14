@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { School, Major, AdmissionBlock, User } from '../models/mongoose.models.js';
 
 // MongoDB Connection Configuration
 
@@ -49,25 +50,9 @@ export const disconnectDB = async () => {
   }
 };
 
-// ===== EXAMPLE: .env file structure =====
-/*
-# MongoDB Atlas Configuration
-MONGODB_URI=mongodb+srv://admission_api:your_password@cluster0.xxxxx.mongodb.net/admission_system?retryWrites=true&w=majority
-
-# Alternative: Local MongoDB (for development)
-# MONGODB_URI=mongodb://localhost:27017/admission_system
-
-# Server Configuration
-PORT=5000
-NODE_ENV=development
-*/
-
-// ===== EXAMPLE: Initialize MongoDB with collections and indexes =====
+// Initialize database indexes
 export const initializeDatabase = async () => {
   try {
-    // Collections will be created automatically when first document is inserted
-    // But we can create indexes explicitly for better performance
-
     const db = mongoose.connection.db;
 
     if (!db) {
@@ -83,49 +68,20 @@ export const initializeDatabase = async () => {
     await db.collection('majors').createIndex({ schoolId: 1, isActive: 1 });
 
     await db.collection('admissionblocks').createIndex({ majorId: 1 });
-    await db
-      .collection('admissionblocks')
-      .createIndex({ year: 1, majorId: 1 });
+    await db.collection('admissionblocks').createIndex({ year: 1, majorId: 1 });
 
-    await db
-      .collection('applications')
-      .createIndex({ applicationNumber: 1 }, { unique: true });
+    await db.collection('applications').createIndex({ applicationNumber: 1 }, { unique: true });
     await db.collection('applications').createIndex({ admissionBlockId: 1 });
     await db.collection('applications').createIndex({ majorId: 1 });
     await db.collection('applications').createIndex({ schoolId: 1 });
-    await db
-      .collection('applications')
-      .createIndex({ 'personalInfo.email': 1 });
-    await db
-      .collection('applications')
-      .createIndex({ 'admissionResult.status': 1 });
-    await db
-      .collection('applications')
-      .createIndex({ 'admissionResult.totalScore': -1 });
+    await db.collection('applications').createIndex({ 'personalInfo.email': 1 });
+    await db.collection('applications').createIndex({ 'admissionResult.status': 1 });
+    await db.collection('applications').createIndex({ 'admissionResult.totalScore': -1 });
     await db.collection('applications').createIndex({ createdAt: -1 });
 
     await db.collection('users').createIndex({ username: 1 }, { unique: true });
     await db.collection('users').createIndex({ email: 1 }, { unique: true });
     await db.collection('users').createIndex({ role: 1 });
-
-    await db.collection('documents').createIndex({ applicationId: 1 });
-    await db
-      .collection('documents')
-      .createIndex({ documentType: 1, applicationId: 1 });
-
-    await db
-      .collection('statistics')
-      .createIndex({ type: 1, date: -1 });
-    await db
-      .collection('statistics')
-      .createIndex({ schoolId: 1, type: 1 });
-
-    await db
-      .collection('notifications')
-      .createIndex({ recipientId: 1, isRead: 1 });
-    await db
-      .collection('notifications')
-      .createIndex({ createdAt: -1 });
 
     console.log('✅ Database indexes created successfully');
   } catch (error) {
@@ -133,16 +89,9 @@ export const initializeDatabase = async () => {
   }
 };
 
-// ===== EXAMPLE: Seed sample data (for development) =====
+// Seed database (optional, for development)
 export const seedDatabase = async () => {
   try {
-    const {
-      School,
-      Major,
-      AdmissionBlock,
-      User
-    } = await import('../models/mongoose.models');
-
     // Check if data already exists
     const schoolCount = await School.countDocuments();
     if (schoolCount > 0) {
@@ -161,11 +110,11 @@ export const seedDatabase = async () => {
         isActive: true
       },
       {
-        code: 'NUS',
-        name: 'Đại học Quốc gia Hà Nội',
-        description: 'Trường đại học Quốc gia',
+        code: 'PTIT',
+        name: 'Học viện Công nghệ Bưu chính Viễn thông',
+        description: 'Trường đào tạo về công nghệ thông tin và viễn thông',
         address: 'Hà Nội, Việt Nam',
-        email: 'admission@nus.edu.vn',
+        email: 'admission@ptit.edu.vn',
         isActive: true
       }
     ]);
@@ -193,6 +142,16 @@ export const seedDatabase = async () => {
         duration: 4,
         studyForm: 'fulltime',
         isActive: true
+      },
+      {
+        schoolId: schools[1]._id,
+        code: '7480101',
+        name: 'Kỹ thuật Viễn thông',
+        description: 'Ngành đào tạo về viễn thông',
+        tuitionPerSemester: 1800000,
+        duration: 4,
+        studyForm: 'fulltime',
+        isActive: true
       }
     ]);
 
@@ -215,6 +174,14 @@ export const seedDatabase = async () => {
         subjects: ['Toán', 'Vật Lý', 'Tiếng Anh'],
         year: 2025,
         isActive: true
+      },
+      {
+        majorId: majors[1]._id,
+        code: 'D01',
+        name: 'Khối Toán - Văn - Anh',
+        subjects: ['Toán', 'Văn', 'Tiếng Anh'],
+        year: 2025,
+        isActive: true
       }
     ]);
 
@@ -228,7 +195,7 @@ export const seedDatabase = async () => {
       hashedPassword: await bcrypt.hash('admin123', 10),
       fullName: 'Administrator',
       role: 'admin',
-      schoolId: [schools[0]._id],
+      schoolId: [schools[0]._id, schools[1]._id],
       permissions: {
         canCreateSchool: true,
         canEditSchool: true,
@@ -243,7 +210,9 @@ export const seedDatabase = async () => {
 
     console.log('✅ Sample admin user created');
     console.log('\n📝 Seed data created successfully!');
-    console.log('Test credentials: admin / admin123');
+    console.log('Test credentials:');
+    console.log('  Email: admin@admission.vn');
+    console.log('  Password: admin123');
   } catch (error) {
     console.error('❌ Error seeding database:', error);
   }

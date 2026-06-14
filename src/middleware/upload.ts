@@ -1,11 +1,9 @@
 import multer from 'multer';
-import { MAX_FILE_SIZE } from '../utils/fileValidator';
+import { MAX_FILE_SIZE } from '../utils/fileValidator.js';
 
-// Use memory storage for GridFS upload
 const storage = multer.memoryStorage();
 
 const fileFilter = (req: any, file: any, cb: any) => {
-  // Accept all files - validation will happen in routes
   cb(null, true);
 };
 

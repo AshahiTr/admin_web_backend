@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema } from 'mongoose';
 
 // ============= Schools =============
 export interface ISchool extends Document {
@@ -30,7 +30,7 @@ const SchoolSchema = new Schema<ISchool>(
   { timestamps: true }
 );
 
-export const School = mongoose.model<ISchool>('School', SchoolSchema);
+const School = mongoose.model<ISchool>('School', SchoolSchema);
 
 // ============= Majors =============
 export interface IMajor extends Document {
@@ -64,7 +64,7 @@ MajorSchema.index({ schoolId: 1 });
 MajorSchema.index({ code: 1 });
 MajorSchema.index({ schoolId: 1, isActive: 1 });
 
-export const Major = mongoose.model<IMajor>('Major', MajorSchema);
+const Major = mongoose.model<IMajor>('Major', MajorSchema);
 
 // ============= AdmissionBlocks =============
 export interface IAdmissionBlock extends Document {
@@ -96,10 +96,7 @@ AdmissionBlockSchema.index({ majorId: 1 });
 AdmissionBlockSchema.index({ code: 1 });
 AdmissionBlockSchema.index({ year: 1, majorId: 1 });
 
-export const AdmissionBlock = mongoose.model<IAdmissionBlock>(
-  'AdmissionBlock',
-  AdmissionBlockSchema
-);
+const AdmissionBlock = mongoose.model<IAdmissionBlock>('AdmissionBlock', AdmissionBlockSchema);
 
 // ============= Quotas =============
 export interface IQuota extends Document {
@@ -116,11 +113,7 @@ export interface IQuota extends Document {
 
 const QuotaSchema = new Schema<IQuota>(
   {
-    admissionBlockId: {
-      type: Schema.Types.ObjectId,
-      ref: 'AdmissionBlock',
-      required: true
-    },
+    admissionBlockId: { type: Schema.Types.ObjectId, ref: 'AdmissionBlock', required: true },
     majorId: { type: Schema.Types.ObjectId, ref: 'Major', required: true },
     quota: { type: Number, required: true, min: 0 },
     enrolled: { type: Number, default: 0, min: 0 },
@@ -134,7 +127,7 @@ const QuotaSchema = new Schema<IQuota>(
 QuotaSchema.index({ admissionBlockId: 1 });
 QuotaSchema.index({ year: 1, majorId: 1 });
 
-export const Quota = mongoose.model<IQuota>('Quota', QuotaSchema);
+const Quota = mongoose.model<IQuota>('Quota', QuotaSchema);
 
 // ============= Applications =============
 export interface IApplication extends Document {
@@ -189,11 +182,7 @@ export interface IApplication extends Document {
 const ApplicationSchema = new Schema<IApplication>(
   {
     applicationNumber: { type: String, required: true, unique: true, trim: true },
-    admissionBlockId: {
-      type: Schema.Types.ObjectId,
-      ref: 'AdmissionBlock',
-      required: true
-    },
+    admissionBlockId: { type: Schema.Types.ObjectId, ref: 'AdmissionBlock', required: true },
     majorId: { type: Schema.Types.ObjectId, ref: 'Major', required: true },
     schoolId: { type: Schema.Types.ObjectId, ref: 'School', required: true },
     personalInfo: {
@@ -258,12 +247,8 @@ ApplicationSchema.index({ 'personalInfo.email': 1 });
 ApplicationSchema.index({ 'admissionResult.status': 1 });
 ApplicationSchema.index({ 'admissionResult.totalScore': -1 });
 ApplicationSchema.index({ createdAt: -1 });
-ApplicationSchema.index({ admissionBlockId: 1, 'admissionResult.status': 1 });
 
-export const Application = mongoose.model<IApplication>(
-  'Application',
-  ApplicationSchema
-);
+const Application = mongoose.model<IApplication>('Application', ApplicationSchema);
 
 // ============= Users =============
 export interface IUser extends Document {
@@ -325,60 +310,72 @@ UserSchema.index({ username: 1 }, { unique: true });
 UserSchema.index({ email: 1 }, { unique: true });
 UserSchema.index({ role: 1 });
 
-// Xóa index idCard_1 nếu nó tồn tại (Sửa lỗi Duplicate Key idCard: null)
-mongoose.connection.on('open', async () => {
-  try {
-    const collections = await mongoose.connection.db.listCollections({ name: 'users' }).toArray();
-    if (collections.length > 0) {
-      await mongoose.connection.db.collection('users').dropIndex('idCard_1').catch(() => {});
-    }
-  } catch (e) {
-    // Bỏ qua nếu index không tồn tại
-  }
-});
+const User = mongoose.model<IUser>('User', UserSchema);
 
-export const User = mongoose.model<IUser>('User', UserSchema);
-
-// ============= Documents =============
-export interface IDocument extends Document {
-  applicationId: mongoose.Types.ObjectId;
-  documentType: 'transcript' | 'certificate' | 'passport' | 'photo' | 'other';
-  fileName: string;
-  fileUrl: string;
+// ============= File Metadata =============
+export interface IFileMetadata extends Document {
+  gridFsId: string;
+  originalName: string;
+  filename: string;
   mimeType: string;
-  fileSize: number;
+  size: number;
+  category: 'avatar' | 'document' | 'logo' | 'data';
   uploadedBy: mongoose.Types.ObjectId;
-  isVerified: boolean;
+  uploadedFor: {
+    type: 'user' | 'application' | 'school';
+    id: mongoose.Types.ObjectId;
+  };
+  uploadDate: Date;
+  expiryDate?: Date;
+  isPublic: boolean;
+  metadata?: {
+    applicationId?: mongoose.Types.ObjectId;
+    userId?: mongoose.Types.ObjectId;
+    schoolId?: mongoose.Types.ObjectId;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
 
-const DocumentSchema = new Schema<IDocument>(
+const FileMetadataSchema = new Schema<IFileMetadata>(
   {
-    applicationId: {
-      type: Schema.Types.ObjectId,
-      ref: 'Application',
-      required: true
-    },
-    documentType: {
+    gridFsId: { type: String, required: true },
+    originalName: { type: String, required: true, trim: true },
+    filename: { type: String, required: true, trim: true },
+    mimeType: { type: String, required: true },
+    size: { type: Number, required: true },
+    category: {
       type: String,
-      enum: ['transcript', 'certificate', 'passport', 'photo', 'other'],
+      enum: ['avatar', 'document', 'logo', 'data'],
       required: true
     },
-    fileName: { type: String, required: true, trim: true },
-    fileUrl: { type: String, required: true },
-    mimeType: String,
-    fileSize: Number,
     uploadedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    isVerified: { type: Boolean, default: false }
+    uploadedFor: {
+      type: {
+        type: String,
+        enum: ['user', 'application', 'school'],
+        required: true
+      },
+      id: { type: Schema.Types.ObjectId, required: true }
+    },
+    uploadDate: { type: Date, default: Date.now },
+    expiryDate: Date,
+    isPublic: { type: Boolean, default: false },
+    metadata: {
+      applicationId: { type: Schema.Types.ObjectId, ref: 'Application' },
+      userId: { type: Schema.Types.ObjectId, ref: 'User' },
+      schoolId: { type: Schema.Types.ObjectId, ref: 'School' }
+    }
   },
   { timestamps: true }
 );
 
-DocumentSchema.index({ applicationId: 1 });
-DocumentSchema.index({ documentType: 1, applicationId: 1 });
+FileMetadataSchema.index({ uploadedBy: 1 });
+FileMetadataSchema.index({ 'uploadedFor.id': 1 });
+FileMetadataSchema.index({ category: 1 });
+FileMetadataSchema.index({ uploadDate: -1 });
 
-export const Document = mongoose.model<IDocument>('Document', DocumentSchema);
+const FileMetadata = mongoose.model<IFileMetadata>('FileMetadata', FileMetadataSchema);
 
 // ============= Statistics =============
 export interface IStatistics extends Document {
@@ -446,109 +443,16 @@ const StatisticsSchema = new Schema<IStatistics>(
 StatisticsSchema.index({ type: 1, date: -1 });
 StatisticsSchema.index({ schoolId: 1, type: 1 });
 
-export const Statistics = mongoose.model<IStatistics>(
-  'Statistics',
-  StatisticsSchema
-);
+const Statistics = mongoose.model<IStatistics>('Statistics', StatisticsSchema);
 
-// ============= Notifications =============
-export interface INotification extends Document {
-  recipientId: mongoose.Types.ObjectId;
-  type: string;
-  title: string;
-  message: string;
-  relatedId?: mongoose.Types.ObjectId;
-  relatedType?: string;
-  isRead: boolean;
-  createdAt: Date;
-}
-
-const NotificationSchema = new Schema<INotification>(
-  {
-    recipientId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    type: { type: String, required: true },
-    title: { type: String, required: true },
-    message: { type: String, required: true },
-    relatedId: { type: Schema.Types.ObjectId },
-    relatedType: String,
-    isRead: { type: Boolean, default: false }
-  },
-  { timestamps: { createdAt: true, updatedAt: false } }
-);
-
-NotificationSchema.index({ recipientId: 1, isRead: 1 });
-NotificationSchema.index({ createdAt: -1 });
-
-export const Notification = mongoose.model<INotification>(
-  'Notification',
-  NotificationSchema
-);
-
-// ============= File Metadata =============
-export interface IFileMetadata extends Document {
-  gridFsId: string;
-  originalName: string;
-  filename: string;
-  mimeType: string;
-  size: number;
-  category: 'avatar' | 'document' | 'logo' | 'data';
-  uploadedBy: mongoose.Types.ObjectId;
-  uploadedFor: {
-    type: 'user' | 'application' | 'school';
-    id: mongoose.Types.ObjectId;
-  };
-  uploadDate: Date;
-  expiryDate?: Date;
-  isPublic: boolean;
-  metadata?: {
-    applicationId?: mongoose.Types.ObjectId;
-    userId?: mongoose.Types.ObjectId;
-    schoolId?: mongoose.Types.ObjectId;
-  };
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-const FileMetadataSchema = new Schema<IFileMetadata>(
-  {
-    gridFsId: { type: String, required: true },
-    originalName: { type: String, required: true, trim: true },
-    filename: { type: String, required: true, trim: true },
-    mimeType: { type: String, required: true },
-    size: { type: Number, required: true },
-    category: {
-      type: String,
-      enum: ['avatar', 'document', 'logo', 'data'],
-      required: true
-    },
-    uploadedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-    uploadedFor: {
-      type: {
-        type: String,
-        enum: ['user', 'application', 'school'],
-        required: true
-      },
-      id: { type: Schema.Types.ObjectId, required: true }
-    },
-    uploadDate: { type: Date, default: Date.now },
-    expiryDate: Date,
-    isPublic: { type: Boolean, default: false },
-    metadata: {
-      applicationId: { type: Schema.Types.ObjectId, ref: 'Application' },
-      userId: { type: Schema.Types.ObjectId, ref: 'User' },
-      schoolId: { type: Schema.Types.ObjectId, ref: 'School' }
-    }
-  },
-  { timestamps: true }
-);
-
-FileMetadataSchema.index({ uploadedBy: 1 });
-FileMetadataSchema.index({ 'uploadedFor.id': 1 });
-FileMetadataSchema.index({ category: 1 });
-FileMetadataSchema.index({ uploadDate: -1 });
-FileMetadataSchema.index({ expiryDate: 1 });
-
-export const FileMetadata = mongoose.model<IFileMetadata>(
-  'FileMetadata',
-  FileMetadataSchema
-);
+// ============= EXPORT ALL MODELS =============
+export {
+  School,
+  Major,
+  AdmissionBlock,
+  Quota,
+  Application,
+  User,
+  FileMetadata,
+  Statistics  // Thêm Statistics vào export
+};

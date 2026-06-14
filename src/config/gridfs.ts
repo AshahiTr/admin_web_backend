@@ -1,10 +1,13 @@
 import mongoose from 'mongoose';
-import { GridFSBucket } from 'mongodb';
+import { GridFSBucket, ObjectId } from 'mongodb';
 
 let gridFSBucket: GridFSBucket;
 
 export const initializeGridFS = (mongoConnection: typeof mongoose) => {
-  const db = mongoConnection.connection.getClient().db(mongoConnection.connection.name);
+  const db = mongoConnection.connection.db;
+  if (!db) {
+    throw new Error('Database connection not established');
+  }
   gridFSBucket = new GridFSBucket(db);
   console.log('✅ GridFS initialized');
 };
@@ -37,10 +40,10 @@ export const uploadFileToGridFS = (buffer: Buffer, filename: string, metadata: a
 
 export const downloadFileFromGridFS = (fileId: string): Promise<Buffer> => {
   return new Promise((resolve, reject) => {
-    const chunks: Uint8Array[] = [];
+    const chunks: Buffer[] = [];
 
     try {
-      const downloadStream = gridFSBucket.openDownloadStream(new mongoose.Types.ObjectId(fileId));
+      const downloadStream = gridFSBucket.openDownloadStream(new ObjectId(fileId));
 
       downloadStream.on('data', (chunk) => {
         chunks.push(chunk);
@@ -62,34 +65,24 @@ export const downloadFileFromGridFS = (fileId: string): Promise<Buffer> => {
 export const deleteFileFromGridFS = (fileId: string): Promise<void> => {
   return new Promise((resolve, reject) => {
     try {
-      gridFSBucket.delete(new mongoose.Types.ObjectId(fileId), (error) => {
-        if (error) {
-          reject(error);
-        } else {
-          resolve();
-        }
-      });
+      // Sửa lỗi: delete method chỉ nhận 1 argument
+      gridFSBucket.delete(new ObjectId(fileId));
+      resolve();
     } catch (error) {
       reject(error);
     }
   });
 };
 
-export const getFileMetadata = (fileId: string): Promise<any> => {
-  return new Promise((resolve, reject) => {
-    try {
-      const db = mongoose.connection.getClient().db(mongoose.connection.name);
-      const filesCollection = db.collection('fs.files');
-
-      filesCollection.findOne({ _id: new mongoose.Types.ObjectId(fileId) }, (error, file) => {
-        if (error) {
-          reject(error);
-        } else {
-          resolve(file);
-        }
-      });
-    } catch (error) {
-      reject(error);
-    }
-  });
+export const getFileMetadata = async (fileId: string): Promise<any> => {
+  try {
+    const db = mongoose.connection.db;
+    if (!db) throw new Error('Database not connected');
+    
+    const filesCollection = db.collection('fs.files');
+    const file = await filesCollection.findOne({ _id: new ObjectId(fileId) });
+    return file;
+  } catch (error) {
+    throw error;
+  }
 };

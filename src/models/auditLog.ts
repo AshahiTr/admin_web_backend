@@ -14,8 +14,8 @@ export interface IAuditLog extends mongoose.Document {
 const AuditLogSchema = new mongoose.Schema<IAuditLog>(
   {
     userId: { type: String },
-    action: { type: String, required: true }, // login, logout, register, update_password, etc.
-    resource: { type: String, required: true }, // users, schools, applications, etc.
+    action: { type: String, required: true },
+    resource: { type: String, required: true },
     description: { type: String, required: true },
     ipAddress: String,
     status: { type: String, enum: ['success', 'failure'], required: true },
@@ -23,10 +23,6 @@ const AuditLogSchema = new mongoose.Schema<IAuditLog>(
   },
   { timestamps: { createdAt: true, updatedAt: false } }
 );
-
-AuditLogSchema.index({ userId: 1 });
-AuditLogSchema.index({ action: 1 });
-AuditLogSchema.index({ createdAt: -1 });
 
 export const AuditLog = mongoose.model<IAuditLog>('AuditLog', AuditLogSchema);
 
