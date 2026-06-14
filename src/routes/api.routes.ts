@@ -1,7 +1,7 @@
 import express from 'express';
-import { School, Major, AdmissionBlock, Quota, Application, Statistics } from '../models/mongoose.models.js';
-import { authenticateToken, authorizeRole } from '../middleware/auth.js';
-import { getPaginationParams, getPaginatedResponse, buildFilter } from '../utils/helpers.js';
+import { School, Major, AdmissionBlock, Quota, Application, Statistics } from '../models/mongoose.models';
+import { authenticateToken } from '../middleware/auth';
+import { getPaginationParams, getPaginatedResponse, buildFilter } from '../utils/helpers';
 
 const router = express.Router();
 
@@ -20,7 +20,7 @@ router.get('/schools', async (req, res) => {
   }
 });
 
-router.post('/schools', authenticateToken, authorizeRole('admin', 'manager'), async (req, res) => {
+router.post('/schools', authenticateToken, async (req, res) => {
   try {
     const school = await School.create(req.body);
     res.status(201).json(school);
@@ -29,7 +29,7 @@ router.post('/schools', authenticateToken, authorizeRole('admin', 'manager'), as
   }
 });
 
-router.put('/schools/:id', authenticateToken, authorizeRole('admin', 'manager'), async (req, res) => {
+router.put('/schools/:id', authenticateToken, async (req, res) => {
   try {
     const school = await School.findByIdAndUpdate(req.params.id, req.body, { new: true });
     res.json(school);
@@ -38,7 +38,7 @@ router.put('/schools/:id', authenticateToken, authorizeRole('admin', 'manager'),
   }
 });
 
-router.delete('/schools/:id', authenticateToken, authorizeRole('admin', 'manager'), async (req, res) => {
+router.delete('/schools/:id', authenticateToken, async (req, res) => {
   try {
     await School.findByIdAndUpdate(req.params.id, { isActive: false });
     res.json({ message: 'Xóa thành công' });
@@ -57,7 +57,7 @@ router.get('/schools/:schoolId/majors', async (req, res) => {
   }
 });
 
-router.post('/majors', authenticateToken, authorizeRole('admin', 'manager'), async (req, res) => {
+router.post('/majors', authenticateToken, async (req, res) => {
   try {
     const major = await Major.create(req.body);
     res.status(201).json(major);
@@ -83,7 +83,7 @@ router.get('/applications', async (req, res) => {
   }
 });
 
-router.put('/applications/:id/status', authenticateToken, authorizeRole('admin', 'manager', 'staff'), async (req, res) => {
+router.put('/applications/:id/status', authenticateToken, async (req, res) => {
   try {
     const application = await Application.findByIdAndUpdate(
       req.params.id,

@@ -46,3 +46,34 @@ export const authenticateToken = (
     res.status(401).json({ error: 'Xác thực thất bại' });
   }
 };
+
+// Thêm hàm authorizeRole
+export const authorizeRole = (...roles: string[]) => {
+  return async (req: AuthRequest, res: Response, next: NextFunction) => {
+    try {
+      if (!req.userId) {
+        return res.status(401).json({ error: 'Không được xác thực' });
+      }
+
+      const user = await User.findById(req.userId);
+
+      if (!user) {
+        return res.status(401).json({ error: 'Người dùng không tồn tại' });
+      }
+
+      if (!user.isActive) {
+        return res.status(403).json({ error: 'Tài khoản đã bị vô hiệu hóa' });
+      }
+
+      if (!roles.includes(user.role)) {
+        return res.status(403).json({ error: 'Không có quyền truy cập' });
+      }
+
+      req.user = user;
+      next();
+    } catch (error) {
+      console.error('Auth error:', error);
+      res.status(500).json({ error: 'Lỗi xác thực quyền' });
+    }
+  };
+};
